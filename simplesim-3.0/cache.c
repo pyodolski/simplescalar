@@ -410,6 +410,7 @@ cache_char2policy(char c)		/* replacement policy as a char */
   case 'r': return Random;
   case 'f': return FIFO;
   case 'm': return MRU;
+  case 'h': return Hybrid;
   default: fatal("bogus replacement policy, `%c'", c);
   }
 }
@@ -429,6 +430,7 @@ cache_config(struct cache_t *cp,	/* cache instance */
 	  : cp->policy == Random ? "Random"
 	  : cp->policy == FIFO ? "FIFO"
 	  : cp->policy == MRU ? "MRU"
+	  : cp->policy == Hybrid ? "Hybrid"
 	  : (abort(), ""));
 }
 
@@ -582,6 +584,17 @@ cache_access(struct cache_t *cp,	/* cache to access */
     repl = cp->sets[set].way_head;
     update_way_list(&cp->sets[set], repl, Head);
     break;
+  case Hybrid:
+    /* Hybrid: use LRU for even sets, MRU for odd sets */
+    if (set & 1) {
+      /* odd set: use MRU */
+      repl = cp->sets[set].way_head;
+    } else {
+      /* even set: use LRU */
+      repl = cp->sets[set].way_tail;
+    }
+    update_way_list(&cp->sets[set], repl, Head);
+    break;
   case Random:
     {
       int bindex = myrand() & (cp->assoc - 1);
@@ -675,8 +688,8 @@ cache_access(struct cache_t *cp,	/* cache to access */
   if (cmd == Write)
     blk->status |= CACHE_BLK_DIRTY;
 
-  /* if LRU or MRU replacement and this is not the first element of list, reorder */
-  if (blk->way_prev && (cp->policy == LRU || cp->policy == MRU))
+  /* if LRU, MRU, or Hybrid replacement and this is not the first element of list, reorder */
+  if (blk->way_prev && (cp->policy == LRU || cp->policy == MRU || cp->policy == Hybrid))
     {
       /* move this block to head of the way (MRU) list */
       update_way_list(&cp->sets[set], blk, Head);

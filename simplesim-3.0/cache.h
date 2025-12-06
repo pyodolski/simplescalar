@@ -103,7 +103,8 @@ enum cache_policy {
   LRU,		/* replace least recently used block (perfect LRU) */
   Random,	/* replace a random block */
   FIFO,		/* replace the oldest block in the set */
-  MRU		/* replace most recently used block (opposite of LRU) */
+  MRU,		/* replace most recently used block (opposite of LRU) */
+  Hybrid	/* hybrid policy combining LRU and MRU */
 };
 
 /* block status values */
